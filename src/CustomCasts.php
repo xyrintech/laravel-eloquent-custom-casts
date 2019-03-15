@@ -25,7 +25,7 @@ trait CustomCasts
      * @return mixed
      */
     protected function castAttribute($key, $value)
-    {
+    {   
         if (is_null($value)) {
             return $value;
         }
@@ -56,7 +56,7 @@ trait CustomCasts
             case 'timestamp':
                 return $this->asTimeStamp($value);
             default:
-                return $this->toClass($this->getCastType($key), $value);
+                return $this->toClass($key, $value);
         }
     }
 
@@ -95,15 +95,17 @@ trait CustomCasts
         if (Str::contains($key, '->')) {
             return $this->fillJsonAttribute($key, $value);
         }
-
+        
         // CustomCasts:
         //
         // If an attribute is listed as a a class name and it's valid,
         // we seriaize it to string using php serialize() function
         if ($this->isCustomCastable($key) && !is_null($value)) {
-            $value = serialize($value);
+            $customCastClass = $this->getCastType($key);
+            $customClass = new $customCastClass();
+            $value = $customClass->setAttribute($key, $value);
         }
-
+        
         $this->attributes[$key] = $value;
 
         return $this;
@@ -130,12 +132,10 @@ trait CustomCasts
      * @param string $value
      * @return mixed
      */
-    protected function toClass($class, $value)
-    {
-        if(!class_exists($class)) {
-            return $value;
-        }
-
-        return unserialize($value);
+    protected function toClass($key, $value)
+    {   
+        $customCastClass = $this->getCastType($key);
+        $customClass = new $customCastClass();
+        return $customClass->getAttribute($key, $value);
     }
 }
